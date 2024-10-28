@@ -1,7 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.9.5"
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd"></mule>
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+	<flow name="HTTP-to-CF">
+		<poll doc:name="Poll">
+			<http:request config-ref="" path="" method="" doc:name="HTTP"/>
+		</poll>
+		<file:file-to-string-transformer doc:name="File to String"/>
+		<dw:transform-message doc:name="Transform Message">
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+{
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
+	</flow>
+	<flow name="CF-to-CB">
+		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
+		<file:file-to-string-transformer doc:name="File to String"/>
+		<expression-transformer doc:name="Expression"/>
+		<db:no-operation-selected config-ref="" doc:name="Database"/>
+	</flow>
+	<flow name="File-to-CF">
+		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
+		<file:file-to-string-transformer doc:name="File to String"/>
+		<custom-transformer class="" doc:name="Java"/>
+		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
+	</flow>
+</mule>
