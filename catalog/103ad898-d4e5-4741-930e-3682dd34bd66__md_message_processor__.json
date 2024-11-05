@@ -1,0 +1,16 @@
+{
+    "inputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "NotasXML"
+        }
+    },
+    "outputMessageMetadata": {
+        "messagePayload": {
+            "connectorName": "#_custom_mule_metadata_type_#",
+            "typeId": "NotasJSON"
+        }
+    },
+    "id": "103ad898-d4e5-4741-930e-3682dd34bd66",
+    "version": "5.2.0.0"
+}
