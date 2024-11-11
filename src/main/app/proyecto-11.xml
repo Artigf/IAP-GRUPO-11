@@ -11,85 +11,106 @@ http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/fil
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
 	<http:request-config name="HTTP_Request_Configuration" host="personales.upv.es" port="80" doc:name="HTTP Request Configuration"/>
-	<flow name="proyecto-11Flow">
-		<poll doc:name="Copy_of_Poll">
-			<fixed-frequency-scheduler frequency="10" timeUnit="SECONDS"/>
-			<http:request config-ref="HTTP_Request_Configuration" path="pedvalar/iap/notas/notas.csv" method="GET" doc:name="Copy_of_HTTP"/>
-		</poll>
-		<object-to-string-transformer doc:name="Copy_of_Object to String"/>
-		<dw:transform-message doc:name="Copy_of_CSV to CannonicalForm" metadata:id="11fb123c-9c91-47f7-ae5d-1a5dd080432b">
-			<dw:input-payload mimeType="application/csv"/>
-			<dw:set-payload><![CDATA[%dw 1.0
-%output application/json
----
-[{
-	actos-evaluacion: [{
-		asignatura: payload.asignatura,
-		nombre: payload.acto,
-		notas: payload.alumno
-++ payload.nota
-	}]
-}]]]></dw:set-payload>
-		</dw:transform-message>
-		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[payload.asignatura].json" responseTimeout="10000" doc:name="Copy_of_File"/>
-	</flow>
-	<flow name="HTTP-to-CF" initialState="stopped">
-		<poll doc:name="Poll">
-			<fixed-frequency-scheduler frequency="10" timeUnit="SECONDS"/>
-			<http:request config-ref="HTTP_Request_Configuration" path="pedvalar/iap/notas/" method="GET" doc:name="HTTP"/>
+	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" database="centroeducativo" doc:name="MySQL Configuration"/>
 
-		</poll>
-		<object-to-string-transformer doc:name="Object to String"/>
-
-		<choice doc:name="Choice">
-
-			<when expression="#[attributes.headers['Content-Type'] == 'text/csv']">
-				<dw:transform-message doc:name="CSV to CannonicalForm" metadata:id="11fb123c-9c91-47f7-ae5d-1a5dd080432b">
-					<dw:input-payload mimeType="application/csv"/>
-					<dw:set-payload><![CDATA[%dw 1.0
-%output application/json
----
-[{
-	actos-evaluacion: [{
-		asignatura: payload.asignatura,
-		nombre: payload.acto,
-		notas: payload.alumno++ payload.nota
-	}]
-}]]]></dw:set-payload>
-				</dw:transform-message>
-			</when>
-			<when expression="#[attributes.headers['Content-Type'] == 'application/xml']">
-				<dw:transform-message doc:name="XML to CannonicalForm" metadata:id="103ad898-d4e5-4741-930e-3682dd34bd66">
-					<dw:input-payload mimeType="application/xml"/>
-					<dw:set-payload><![CDATA[%dw 1.0
-%output application/json
----
-{
-	actos-evaluacion: payload.notas.*actoEvaluacion map ((actoEvaluacion , indexOfActoEvaluacion) -> {
-		asignatura: actoEvaluacion.asignatura,
-		nombre: actoEvaluacion.nombre,
-		notas: actoEvaluacion.alumno.@dni
-++ actoEvaluacion.alumno
-	})
-}]]></dw:set-payload>
-				</dw:transform-message>
-			</when>
-			<otherwise>
-				<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[payload.asignatura].json" responseTimeout="10000" doc:name="File"/>
-			</otherwise>
-		</choice>
-		<file:outbound-endpoint responseTimeout="10000" doc:name="File" outputPattern="#[payload.asignatura].json" path="C:\Proyecto\Transformaciones"/>
-	</flow>
-	<flow name="CF-to-DB" initialState="stopped">
-		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
-		<file:file-to-string-transformer doc:name="File to String"/>
-		<expression-transformer doc:name="Expression"/>
-		<db:no-operation-selected config-ref="" doc:name="Database"/>
-	</flow>
 	<flow name="File-to-CF" initialState="stopped">
 		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
 		<file:file-to-string-transformer doc:name="File to String"/>
 		<custom-transformer class="" doc:name="Java"/>
 		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
+	</flow>
+	<flow name="XML-to-CF">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.xml" method="GET" doc:name="HTTP-XML"/>
+		</poll>
+		<object-to-string-transformer doc:name="Object to String"/>
+		<dw:transform-message doc:name="XML-CF" metadata:id="fe398ff8-acee-4a36-87c9-2e5ce466a183">
+			<dw:input-payload mimeType="application/xml"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+
+{
+	evaluaciones: payload.notas.*actoEvaluacion map ((actoEvaluacion , indexOfActoEvaluacion) -> {
+		asignatura: actoEvaluacion.asignatura,
+		nombre: actoEvaluacion.nombre,
+		dni: actoEvaluacion.alumno.@dni,
+		nota: actoEvaluacion.alumno
+
+
+	})
+}
+
+
+]]></dw:set-payload>
+		</dw:transform-message>
+		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[&quot;notasXML&quot;].json" responseTimeout="10000" doc:name="CF"/>
+	</flow>
+	<flow name="JSON-to-CF">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.json" method="GET" doc:name="HTTP-JSON"/>
+		</poll>
+		<object-to-string-transformer doc:name="Object to String"/>
+		<dw:transform-message doc:name="JSON-CF" metadata:id="b422237e-1173-443d-b0c5-2d2357225a60">
+			<dw:input-payload mimeType="application/json"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+  evaluaciones: payload."actos-evaluacion" map ((acto) -> 
+    acto.notas map ((nota) -> {
+      asignatura: acto.asignatura,
+      nombre: acto.nombre,
+      dni: (nota splitBy ":")[0], // Extrae el DNI de cada nota
+      nota: ((nota splitBy ":")[1]) as :number // Extrae la nota y la convierte a número
+    })
+  ) reduce ((acc, item) -> acc ++ item) // Une todas las listas en una sola
+}
+
+
+
+
+
+
+]]></dw:set-payload>
+		</dw:transform-message>
+		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[&quot;notasJSON&quot;].json" responseTimeout="10000" doc:name="CF"/>
+	</flow>
+	<flow name="CSV-to-CF">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.csv" method="GET" doc:name="HTTP-CSV"/>
+		</poll>
+		<object-to-string-transformer doc:name="Object to String"/>
+		<dw:transform-message doc:name="CSV-CF" metadata:id="11fb123c-9c91-47f7-ae5d-1a5dd080432b">
+			<dw:input-payload mimeType="application/csv"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+ evaluaciones:  payload map ((row) -> {
+    asignatura: row.asignatura,
+    nombre: row.acto,
+    dni: row.alumno,  
+    notas: row.nota
+    
+})
+
+]]></dw:set-payload>
+		</dw:transform-message>
+		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[&quot;notasCSV&quot;].json" responseTimeout="10000" doc:name="CF"/>
+	</flow>
+	<flow name="CF-to-DB">
+		<file:inbound-endpoint path="C:\Proyecto\Transformaciones" moveToPattern="#[message.id].json" moveToDirectory="C:\Proyecto\Gestionados" responseTimeout="10000" doc:name="CF-to-DB">
+			<file:filename-regex-filter pattern=".+\.json" caseSensitive="true"/>
+		</file:inbound-endpoint>
+		<logger message="#[payload.evaluaciones]" level="INFO" doc:name="Logger"/>
+		<echo-component doc:name="Echo"/>
+		<foreach collection="#[payload.evaluaciones]" doc:name="For Each">
+			<db:insert config-ref="MySQL_Configuration" doc:name="DB">
+				<db:parameterized-query><![CDATA[INSERT INTO `notas`(`alumno`, `nombre_acto`, `asignatura`, `nota`) VALUES (#[payload.asignatura],#[payload.nombre],#[payload.dni],#[payload.nota])]]></db:parameterized-query>
+			</db:insert>
+		</foreach>
 	</flow>
 </mule>
