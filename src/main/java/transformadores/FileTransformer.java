@@ -37,7 +37,7 @@ public class FileTransformer extends AbstractMessageTransformer {
         	return "es un csv";
             //return transformCSVToJSON(fichero);
         } else if (fileType.equalsIgnoreCase("json")) {
-            return fichero; // Si es JSON, simplemente devolvemos el contenido
+            return transformJSONtoCFjson(fichero); // Modificar el JSON para ponerlo en Formato Canónico
         } else {
             throw new IllegalArgumentException("Formato de archivo no soportado");
         }
@@ -75,6 +75,45 @@ public class FileTransformer extends AbstractMessageTransformer {
         rootJson.put("evaluaciones", actosArray);
         return rootJson.toString(4); // Retorna el JSON con 4 espacios de identación
         // Tal vez si despues va a ser leido por la BD es interesante ponerlo con 0 espacios...
+    }
+    
+    private String transformJSONtoCFjson(String JSONfichero) throws Exception {
+    	JSONObject jsonEntrada = new JSONObject(JSONfichero); // Convertir el JSON de entrada en un objeto JSON
+    	
+    	JSONArray evaluacionesArray = new JSONArray(); // Crear el array de JSON evaluaciones
+    	// Obtenemos el array "actos-evaluacion" del JSON de entrada
+    	JSONArray actosArray = jsonEntrada.getJSONArray("actos-evaluacion"); 
+    	
+    	// Recorremos ahora cada acto-evaluacion
+    	for (int i = 0; i < actosArray.length(); i++) {
+    		JSONObject acto = actosArray.getJSONObject(i);
+    		// Aqui extraemos asignatura y el nombre del acto evaluativo
+    		String asignatura = acto.getString("asignatura");
+    		String nombre = acto.getString("nombre");
+    		// Obtenemos el subarray de notas
+    		JSONArray notasArray = acto.getJSONArray("notas");
+    		// Recorremos el subarray para obtener cada nota
+    		for (int j = 0; j < notasArray.length(); j++) {
+    			String entradaNota = notasArray.getString(j);
+    			// Dividimos ahora en partes
+    			String[] partes = entradaNota.split(":");
+    			String dni = partes[0];
+    			double nota = Double.parseDouble(partes[1]);
+    			// Creamos el JSON en formato canónico
+    			JSONObject cfJSON = new JSONObject();
+    			cfJSON.put("asignatura", asignatura);
+    			cfJSON.put("nombre", nombre);
+    			cfJSON.put("dni", dni);
+    			cfJSON.put("nota", nota);
+    			
+    			// Añadir la evaluacion al array de evaluaciones
+    			evaluacionesArray.put(cfJSON);
+    		}
+    	}
+    	// Creamos el JSON raíz (Recuerda que es un array de JSON)
+    	JSONObject rootJSON = new JSONObject();
+    	rootJSON.put("evaluaciones", evaluacionesArray);
+    	return rootJSON.toString(4); // Devolver el JSON en formato identado
     }
 
     // Método que transforma contenido CSV a JSON
