@@ -10,5 +10,7 @@
 	<classpathentry kind="src" path="src/main/api"/>
 	<classpathentry kind="src" path="src/main/wsdl"/>
 	<classpathentry kind="src" path="src/test/munit"/>
+	<classpathentry kind="lib" path="C:/Users/Administrador.WIN-2O4P6U7CI32/Desktop/libreriasJar/dom4j-2.0.0-ALPHA-2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Administrador.WIN-2O4P6U7CI32/Desktop/libreriasJar/java-json.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

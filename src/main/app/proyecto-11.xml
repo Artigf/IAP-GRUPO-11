@@ -10,52 +10,13 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
-	<flow name="HTTP-to-CF">
-		<poll doc:name="Poll">
-			<http:request config-ref="" path="" method="" doc:name="HTTP"/>
-		</poll>
+
+	<flow name="File-to-CF" initialState="started">
+		<file:inbound-endpoint responseTimeout="10000" doc:name="File" path="C:\analizar">
+			<file:filename-regex-filter pattern=".*" caseSensitive="true"/>
+		</file:inbound-endpoint>
 		<file:file-to-string-transformer doc:name="File to String"/>
-		<choice doc:name="Choice">
-			<when expression="">
-				<dw:transform-message doc:name="Transform Message">
-					<dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-{
-}]]></dw:set-payload>
-				</dw:transform-message>
-			</when>
-			<when expression="">
-				<dw:transform-message doc:name="Transform Message">
-					<dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-{
-}]]></dw:set-payload>
-				</dw:transform-message>
-			</when>
-			<otherwise>
-				<dw:transform-message doc:name="Transform Message">
-					<dw:set-payload><![CDATA[%dw 1.0
-%output application/java
----
-{
-}]]></dw:set-payload>
-				</dw:transform-message>
-			</otherwise>
-		</choice>
-		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
-	</flow>
-	<flow name="CF-to-DB">
-		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
-		<file:file-to-string-transformer doc:name="File to String"/>
-		<expression-transformer doc:name="Expression"/>
-		<db:no-operation-selected config-ref="" doc:name="Database"/>
-	</flow>
-	<flow name="File-to-CF">
-		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
-		<file:file-to-string-transformer doc:name="File to String"/>
-		<custom-transformer class="" doc:name="Java"/>
-		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
+		<custom-transformer class="transformadores.FileTransformer" doc:name="Java"/>
+		<file:outbound-endpoint responseTimeout="10000" doc:name="File" outputPattern="transformado.json" path="C:\analizado"/>
 	</flow>
 </mule>
