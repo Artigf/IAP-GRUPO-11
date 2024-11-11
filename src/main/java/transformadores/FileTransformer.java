@@ -43,32 +43,38 @@ public class FileTransformer extends AbstractMessageTransformer {
         }
     }
 
-    // Método que transforma contenido XML a JSON
-    private String transformXMLToJSON(String xmlContent) throws Exception {
-        Document document = DocumentHelper.parseText(xmlContent);  // Parsear XML
-        JSONObject rootJson = new JSONObject();
-        JSONArray actosArray = new JSONArray();
-        rootJson.put("actos-evaluacion", actosArray);
+    // Método que transforma el fichero XML a JSON
+    private String transformXMLToJSON(String xmlFichero) throws Exception {
+        Document document = DocumentHelper.parseText(xmlFichero);  // Parsea el XML contenido en la variable
+        JSONArray actosArray = new JSONArray(); // Crea el array de JSONs principal.
 
         List<? extends Node> actos = document.selectNodes("//actoEvaluacion");
         for (Node acto : actos) {
-            JSONObject actoJson = new JSONObject();
-            actoJson.put("asignatura", acto.selectSingleNode("asignatura").getStringValue());
-            actoJson.put("nombre", acto.selectSingleNode("nombre").getStringValue());
-
-            JSONArray notasArray = new JSONArray();
+            
+            
+            String asignatura = acto.selectSingleNode("asignatura").getStringValue();
+            String nombre = acto.selectSingleNode("nombre").getStringValue(); 
+     
+        
             List<? extends Node> alumnos = acto.selectNodes("alumno");
 
             for (Node alumno : alumnos) {
-                String nota = alumno.valueOf("@dni") + ":" + alumno.getStringValue();
-                notasArray.put(nota);
+            	JSONObject actoJson = new JSONObject();
+            	actoJson.put("asignatura", asignatura);
+            	actoJson.put("nombre", nombre);
+                actoJson.put("dni", alumno.valueOf("@dni"));
+                
+                //Para que en el JSON no aparezca la nota como una cadena
+                double nota = Double.parseDouble(alumno.getStringValue().trim());
+                actoJson.put("nota", nota);
+                
+                actosArray.put(actoJson);
             }
-
-            actoJson.put("notas", notasArray);
-            actosArray.put(actoJson);
         }
-
-        return rootJson.toString(4); // Retorna el JSON con formato legible
+        JSONObject rootJson = new JSONObject();
+        rootJson.put("evaluaciones", actosArray);
+        return rootJson.toString(4); // Retorna el JSON con 4 espacios de identación
+        // Tal vez si despues va a ser leido por la BD es interesante ponerlo con 0 espacios...
     }
 
     // Método que transforma contenido CSV a JSON
