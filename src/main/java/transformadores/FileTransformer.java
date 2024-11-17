@@ -5,12 +5,10 @@ import org.dom4j.DocumentHelper;
 import org.dom4j.Node;
 import org.json.JSONArray;
 import org.json.JSONObject;
-//import com.opencsv.CSVReader;
+import com.opencsv.CSVReader;
 
 import java.io.StringReader;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
@@ -34,8 +32,7 @@ public class FileTransformer extends AbstractMessageTransformer {
         if (fileType.equalsIgnoreCase("xml")) {
             return transformXMLToJSON(fichero);
         } else if (fileType.equalsIgnoreCase("csv")) {
-        	return "es un csv";
-            //return transformCSVToJSON(fichero);
+            return transformCSVToJSON(fichero);
         } else if (fileType.equalsIgnoreCase("json")) {
             return transformJSONtoCFjson(fichero); // Modificar el JSON para ponerlo en Formato Canónico
         } else {
@@ -116,41 +113,50 @@ public class FileTransformer extends AbstractMessageTransformer {
     	return rootJSON.toString(4); // Devolver el JSON en formato identado
     }
 
-    // Método que transforma contenido CSV a JSON
-/*    private String transformCSVToJSON(String csvContent) throws Exception {
-        Map<String, JSONObject> actosMap = new HashMap<>();
-        
-        try (CSVReader reader = new CSVReader(new StringReader(csvContent))) {
-            String[] nextLine;
-            reader.readNext(); // Saltar la primera línea si es el encabezado
+    // Método que transforma contenido CSV a CFJSON
+   private String transformCSVToJSON(String csvContent) throws Exception {
+    JSONArray evaluacionesArray = new JSONArray();
 
-            while ((nextLine = reader.readNext()) != null) {
-                String asignatura = nextLine[0];
-                String acto = nextLine[1];
-                String alumno = nextLine[2];
-                String nota = nextLine[3];
+    try (CSVReader reader = new CSVReader(new StringReader(csvContent))) {
+        String[] nextLine;
+        boolean isHeader = true; // Bandera para saltar el encabezado
 
-                String key = asignatura + ":" + acto;
-                JSONObject actoJson = actosMap.getOrDefault(key, new JSONObject());
-                if (!actoJson.has("asignatura")) {
-                    actoJson.put("asignatura", asignatura);
-                    actoJson.put("nombre", acto);
-                    actoJson.put("notas", new JSONArray());
-                }
-
-                JSONArray notasArray = actoJson.getJSONArray("notas");
-                notasArray.put(alumno + ":" + nota);
-                actosMap.put(key, actoJson);
+        while ((nextLine = reader.readNext()) != null) {
+            if (isHeader) {
+                isHeader = false; // Saltar la primera línea
+                continue;
             }
+
+            // Validamos que la línea tenga al menos 4 columnas
+            if (nextLine.length < 4) {
+                throw new IllegalArgumentException("Formato CSV inválido, faltan columnas.");
+            }
+
+            // Extraemos los datos de cada columna
+            String asignatura = nextLine[0].trim();
+            String nombre = nextLine[1].trim();
+            String dni = nextLine[2].trim();
+            double nota = Double.parseDouble(nextLine[3].trim());
+
+            // Creamos un objeto JSON para cada fila
+            JSONObject evaluacionJson = new JSONObject();
+            evaluacionJson.put("asignatura", asignatura);
+            evaluacionJson.put("nombre", nombre);
+            evaluacionJson.put("dni", dni);
+            evaluacionJson.put("nota", nota);
+
+            // Añadimos la evaluación al array principal
+            evaluacionesArray.put(evaluacionJson);
         }
+    }
 
-        JSONObject rootJson = new JSONObject();
-        JSONArray actosArray = new JSONArray();
-        actosMap.values().forEach(actosArray::put);
-        rootJson.put("actos-evaluacion", actosArray);
+    // Creamos el objeto raíz
+    JSONObject rootJson = new JSONObject();
+    rootJson.put("evaluaciones", evaluacionesArray);
 
-        return rootJson.toString(4); // Retorna el JSON con formato legible
-    }*/
+    return rootJson.toString(4); // Retorna el JSON con 4 espacios de indentación
+}
+
 
     // Método para determinar el tipo de archivo (XML, CSV, JSON)
     private String determineFileType(String content) {
