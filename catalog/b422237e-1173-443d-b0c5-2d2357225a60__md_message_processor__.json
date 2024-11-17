@@ -2,7 +2,7 @@
     "inputMessageMetadata": {
         "messagePayload": {
             "connectorName": "#_custom_mule_metadata_type_#",
-            "typeId": "NotasCSV"
+            "typeId": "NotasJSON"
         }
     },
     "outputMessageMetadata": {
@@ -11,6 +11,6 @@
             "typeId": "CF"
         }
     },
-    "id": "11fb123c-9c91-47f7-ae5d-1a5dd080432b",
+    "id": "b422237e-1173-443d-b0c5-2d2357225a60",
     "version": "5.2.0.0"
 }

@@ -13,6 +13,72 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	<http:request-config name="HTTP_Request_Configuration" host="personales.upv.es" port="80" doc:name="HTTP Request Configuration"/>
 	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" database="centroeducativo" doc:name="MySQL Configuration"/>
 
+
+	<flow name="File-to-CF-JAVA" initialState="stopped">
+		<file:inbound-endpoint responseTimeout="10000" doc:name="File-to-CF" path="C:\Proyecto\analizar"/>
+		<file:file-to-string-transformer doc:name="File to String"/>
+		<custom-transformer class="transformadores.FileTransformer" doc:name="Transformador a CF"/>
+		<file:outbound-endpoint responseTimeout="10000" doc:name="File" outputPattern="#[message.id].json" path="C:\Proyecto\analizado"/>
+	</flow>
+	<flow name="CF-to-DB">
+		<file:inbound-endpoint path="C:\Proyecto\Transformaciones" moveToPattern="#[message.id].json" moveToDirectory="C:\Proyecto\Gestionados" responseTimeout="10000" doc:name="CF-to-DB">
+			<file:filename-regex-filter pattern=".+\.json" caseSensitive="true"/>
+		</file:inbound-endpoint>
+		<file:file-to-string-transformer doc:name="File to String"/>
+		<dw:transform-message doc:name="JSON-to-MAP" metadata:id="cc9b36e6-49b5-4f81-94ce-897f0338f657">
+			<dw:input-payload mimeType="application/json"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/java
+---
+payload.evaluaciones map ((evaluacione , indexOfEvaluacione) -> {
+	asignatura: evaluacione.asignatura,
+	dni: evaluacione.dni,
+	nombre: evaluacione.nombre,
+	nota: evaluacione.nota
+})]]></dw:set-payload>
+		</dw:transform-message>
+		<logger message="Actual: #[payload]" level="INFO" doc:name="Logger"/>
+		<foreach collection="#[payload]" doc:name="For Each">
+			<db:insert config-ref="MySQL_Configuration" doc:name="DB">
+				<db:parameterized-query><![CDATA[INSERT INTO `notas`(`alumno`, `nombre_acto`, `asignatura`, `nota`) VALUES (#[payload.dni],#[payload.nombre],#[payload.asignatura],#[payload.nota])]]></db:parameterized-query>
+			</db:insert>
+		</foreach>
+	</flow>
+	<flow name="CSV-to-CF">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.csv" method="GET" doc:name="HTTP"/>
+		</poll>
+		<object-to-string-transformer doc:name="Object to String"/>
+		<dw:transform-message doc:name="CSV-CF" metadata:id="11fb123c-9c91-47f7-ae5d-1a5dd080432b">
+			<dw:input-payload mimeType="application/csv"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+ evaluaciones:  payload map ((row) -> {
+    asignatura: row.asignatura,
+    nombre: row.acto,
+    dni: row.alumno,  
+    nota: row.nota
+    
+})
+
+]]></dw:set-payload>
+		</dw:transform-message>
+		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[&quot;notasCSV&quot;].json" responseTimeout="10000" doc:name="CF"/>
+	</flow>
+	<flow name="XML-to-CF">
+		<poll doc:name="Poll">
+			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.xml" method="GET" doc:name="HTTP"/>
+		</poll>
+		<object-to-string-transformer doc:name="Object to String"/>
+		<dw:transform-message doc:name="XML-CF" metadata:id="fe398ff8-acee-4a36-87c9-2e5ce466a183">
+			<dw:input-payload mimeType="application/xml"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+
 	<flow name="File-to-CF" initialState="stopped">
 		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
 		<file:file-to-string-transformer doc:name="File to String"/>
@@ -30,6 +96,7 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 			<dw:set-payload><![CDATA[%dw 1.0
 %output application/json
 ---
+
 
 {
 	evaluaciones: payload.notas.*actoEvaluacion map ((actoEvaluacion , indexOfActoEvaluacion) -> {
@@ -50,7 +117,11 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	<flow name="JSON-to-CF">
 		<poll doc:name="Poll">
 			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
+
+			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.json" method="GET" doc:name="HTTP"/>
+
 			<http:request config-ref="HTTP_Request_Configuration" path="/pedvalar/iap/notas/notas.json" method="GET" doc:name="HTTP-JSON"/>
+
 		</poll>
 		<object-to-string-transformer doc:name="Object to String"/>
 		<dw:transform-message doc:name="JSON-CF" metadata:id="b422237e-1173-443d-b0c5-2d2357225a60">
@@ -78,6 +149,9 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 		</dw:transform-message>
 		<file:outbound-endpoint path="C:\Proyecto\Transformaciones" outputPattern="#[&quot;notasJSON&quot;].json" responseTimeout="10000" doc:name="CF"/>
 	</flow>
+
+
+
 	<flow name="CSV-to-CF">
 		<poll doc:name="Poll">
 			<fixed-frequency-scheduler frequency="100" timeUnit="SECONDS"/>
@@ -113,4 +187,5 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 			</db:insert>
 		</foreach>
 	</flow>
+
 </mule>
