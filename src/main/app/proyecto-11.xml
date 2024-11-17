@@ -13,11 +13,11 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 	<http:request-config name="HTTP_Request_Configuration" host="personales.upv.es" port="80" doc:name="HTTP Request Configuration"/>
 	<db:mysql-config name="MySQL_Configuration" host="localhost" port="3306" user="root" database="centroeducativo" doc:name="MySQL Configuration"/>
 
-	<flow name="File-to-CF" initialState="stopped">
-		<file:inbound-endpoint responseTimeout="10000" doc:name="File"/>
+	<flow name="File-to-CF-JAVA" initialState="stopped">
+		<file:inbound-endpoint responseTimeout="10000" doc:name="File-to-CF" path="C:\Proyecto\analizar"/>
 		<file:file-to-string-transformer doc:name="File to String"/>
-		<custom-transformer class="" doc:name="Java"/>
-		<file:outbound-endpoint responseTimeout="10000" doc:name="File"/>
+		<custom-transformer class="transformadores.FileTransformer" doc:name="Transformador a CF"/>
+		<file:outbound-endpoint responseTimeout="10000" doc:name="File" outputPattern="#[message.id].json" path="C:\Proyecto\analizado"/>
 	</flow>
 	<flow name="CF-to-DB">
 		<file:inbound-endpoint path="C:\Proyecto\Transformaciones" moveToPattern="#[message.id].json" moveToDirectory="C:\Proyecto\Gestionados" responseTimeout="10000" doc:name="CF-to-DB">
