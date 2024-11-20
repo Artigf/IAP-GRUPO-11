@@ -1,26 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-
-
-	<classpathentry kind="lib" path="src/main/app/lib/mysql-connector-java-5.1.22-bin.jar"/>
-	<classpathentry kind="src" path="src/main/app"/>
-
 	<classpathentry kind="src" path="src/main/api"/>
 	<classpathentry exported="true" kind="con" path="MULE_RUNTIME/org.mule.tooling.server.3.9.5.ee"/>
 	<classpathentry kind="src" path="src/main/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="src" path="src/main/resources"/>
-	<classpathentry kind="src" path="src/main/wsdl"/>
 	<classpathentry kind="lib" path="src/main/app/lib/mysql-connector-java-5.1.22-bin.jar"/>
 	<classpathentry kind="src" path="src/main/app"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/java"/>
 	<classpathentry kind="lib" path="C:/Users/Administrador.WIN-2O4P6U7CI32/Desktop/libreriasJar/java-json.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Administrador.WIN-2O4P6U7CI32/Desktop/libreriasJar/opencsv-5.9.jar"/>
 	<classpathentry kind="src" output="target/test-classes" path="src/test/resources"/>
-
-
-	<classpathentry kind="src" path="src/main/wsdl"/>
-
 	<classpathentry kind="src" path="src/test/munit"/>
 	<classpathentry kind="lib" path="C:/Users/Administrador.WIN-2O4P6U7CI32/Desktop/libreriasJar/dom4j-2.0.0-ALPHA-2.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
